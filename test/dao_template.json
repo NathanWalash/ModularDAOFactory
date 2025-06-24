@@ -1,15 +1,15 @@
 {
-  "name": "Full Modular DAO",
-  "description": "A DAO with Member, Greeting, and Counter modules",
+  "templateName": "Community DAO",
+  "templateDescription": "A template for a community organization",
   "modules": [
     "MemberModule",
     "GreetingModule",
     "CounterModule"
   ],
-  "initParams": [
-    { "admin": "OWNER" },
+  "initParamsSchema": [
+    { "admin": "address" },
     {},
     {}
   ],
-  "templateId": "full-modular"
+  "templateId": "community-v1"
 } 

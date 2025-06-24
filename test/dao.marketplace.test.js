@@ -123,27 +123,33 @@ describe("DAO Marketplace/Registry", function () {
       GreetingModule: greetingImpl.target,
       CounterModule: counterImpl.target
     };
-    // Build modules and initData arrays
+    // Simulate user input for instance creation
+    const instanceName = "Solidity Enthusiasts DAO";
+    const instanceDescription = "A DAO for Solidity fans to collaborate and learn";
+    const isPublic = true;
+    // Simulate user input for module params (admin address for MemberModule)
+    const userModuleParams = [
+      { admin: owner.address }, // for MemberModule
+      {}, // for GreetingModule
+      {}  // for CounterModule
+    ];
+    // Build modules and initData arrays from user input
     const modules = template.modules.map((name) => moduleAddressMap[name]);
-    const initData = template.initParams.map((params, i) => {
+    const initData = template.initParamsSchema.map((schema, i) => {
       if (template.modules[i] === "MemberModule") {
-        // Replace OWNER with actual address
-        const admin = params.admin === "OWNER" ? owner.address : params.admin;
-        return ethers.AbiCoder.defaultAbiCoder().encode(["address"], [admin]);
+        return ethers.AbiCoder.defaultAbiCoder().encode(["address"], [userModuleParams[i].admin]);
       } else {
         return "0x";
       }
     });
-    // User chooses public/private at creation time
-    const isPublic = true; // or false, as chosen by the user
-    // Use template fields
+    // Use user-supplied instance fields
     const tx = await factory.createDao(
       modules,
       initData,
-      template.name,
-      template.description,
+      instanceName,
+      instanceDescription,
       isPublic,
-      template.templateId || "full-modular"
+      template.templateId
     );
     const receipt = await tx.wait();
     const event = receipt.logs.find((e) => e.fragment && e.fragment.name === "DaoCreated");
@@ -153,9 +159,10 @@ describe("DAO Marketplace/Registry", function () {
     const daoCount = await factory.getDaoCount();
     const index = Number(BigInt(daoCount) - 1n);
     const info = await factory.getDaoInfo(index);
-    expect(info.name).to.equal(template.name);
-    expect(info.description).to.equal(template.description);
+    expect(info.name).to.equal(instanceName);
+    expect(info.description).to.equal(instanceDescription);
     expect(info.isPublic).to.equal(isPublic);
+    expect(info.modules.length).to.equal(3);
     // Check MemberModule functionality
     const member = await ethers.getContractAt("MemberModule", dao);
     expect(await member.getRole(owner.address)).to.equal(2); // Admin

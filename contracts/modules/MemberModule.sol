@@ -109,4 +109,9 @@ contract MemberModule {
         }
         return requests;
     }
+
+    // Get the number of current members (including admins)
+    function getMemberCount() external view returns (uint256) {
+        return memberList.length;
+    }
 } 

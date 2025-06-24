@@ -58,7 +58,12 @@ describe("Modular DAO Factory Demo", function () {
     );
     
     // Create a new DAO (proxy) with the GreetingModule
-    const tx = await factory.createDao(modAddr);
+    const tx = await factory.createDao(
+      modAddr,
+      "Greeter DAO",
+      "A DAO with a greeting module",
+      true
+    );
     const receipt = await tx.wait();
 
     // Find the DaoCreated event and extract the new DAO address
@@ -79,7 +84,12 @@ describe("Modular DAO Factory Demo", function () {
     );
 
     // Create a new DAO (proxy) with the CounterModule
-    const tx = await factory.createDao(modAddr);
+    const tx = await factory.createDao(
+      modAddr,
+      "Counter DAO",
+      "A DAO with a counter module",
+      true
+    );
     const receipt = await tx.wait();
 
     // Find the DaoCreated event and extract the new DAO address

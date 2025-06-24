@@ -27,7 +27,12 @@ describe("MemberModule (roles & join requests)", function () {
     await factory.waitForDeployment();
 
     // Create a new DAO using MemberModule
-    const tx = await factory.createDao(memberImpl.target);
+    const tx = await factory.createDao(
+      memberImpl.target,
+      "Test Member DAO",
+      "A DAO for member module tests",
+      true
+    );
     const receipt = await tx.wait();
     const event = receipt.logs.find((e) => e.fragment.name === "DaoCreated");
     dao = event.args.dao;

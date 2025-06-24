@@ -1,0 +1,13 @@
+{
+  "templateName": "Greeting & Counter DAO",
+  "templateDescription": "A DAO with greeting and counter modules",
+  "modules": [
+    "GreetingModule",
+    "CounterModule"
+  ],
+  "initParamsSchema": [
+    {},
+    {}
+  ],
+  "templateId": "greet-counter-v1"
+} 

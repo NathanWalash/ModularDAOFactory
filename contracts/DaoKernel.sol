@@ -90,4 +90,10 @@ contract DaoKernel {
                 default { return(0, returndatasize()) }
         }
     }
+
+    // Expose the list of modules (for diamond modules to find each other)
+    function modules() public view returns (address[] memory) {
+        ModuleRegistry storage reg = _moduleRegistryStorage();
+        return reg.modules;
+    }
 }

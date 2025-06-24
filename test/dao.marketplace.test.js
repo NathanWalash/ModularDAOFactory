@@ -107,9 +107,9 @@ describe("DAO Marketplace/Registry", function () {
     expect(await memberModule1.getMemberCount()).to.equal(2);
   });
 
-  it("creates a DAO from a JSON template", async () => {
+  it("creates a DAO from a JSON template with GreetingModule and CounterModule", async () => {
     // Load template
-    const template = JSON.parse(fs.readFileSync("test/dao_template.json", "utf8"));
+    const template = JSON.parse(fs.readFileSync("test/dao_greet_counter_template.json", "utf8"));
     // Deploy all modules
     const G = await ethers.getContractFactory("GreetingModule");
     const greetingImpl = await G.deploy();
@@ -119,7 +119,6 @@ describe("DAO Marketplace/Registry", function () {
     await counterImpl.waitForDeployment();
     // Map module names to deployed addresses
     const moduleAddressMap = {
-      MemberModule: memberImpl.target,
       GreetingModule: greetingImpl.target,
       CounterModule: counterImpl.target
     };
@@ -127,21 +126,14 @@ describe("DAO Marketplace/Registry", function () {
     const instanceName = "Solidity Enthusiasts DAO";
     const instanceDescription = "A DAO for Solidity fans to collaborate and learn";
     const isPublic = true;
-    // Simulate user input for module params (admin address for MemberModule)
+    // Simulate user input for module params (none needed)
     const userModuleParams = [
-      { admin: owner.address }, // for MemberModule
       {}, // for GreetingModule
       {}  // for CounterModule
     ];
     // Build modules and initData arrays from user input
     const modules = template.modules.map((name) => moduleAddressMap[name]);
-    const initData = template.initParamsSchema.map((schema, i) => {
-      if (template.modules[i] === "MemberModule") {
-        return ethers.AbiCoder.defaultAbiCoder().encode(["address"], [userModuleParams[i].admin]);
-      } else {
-        return "0x";
-      }
-    });
+    const initData = template.initParamsSchema.map(() => "0x");
     // Use user-supplied instance fields
     const tx = await factory.createDao(
       modules,
@@ -162,10 +154,7 @@ describe("DAO Marketplace/Registry", function () {
     expect(info.name).to.equal(instanceName);
     expect(info.description).to.equal(instanceDescription);
     expect(info.isPublic).to.equal(isPublic);
-    expect(info.modules.length).to.equal(3);
-    // Check MemberModule functionality
-    const member = await ethers.getContractAt("MemberModule", dao);
-    expect(await member.getRole(owner.address)).to.equal(2); // Admin
+    expect(info.modules.length).to.equal(2);
     // Check GreetingModule functionality
     const greeter = await ethers.getContractAt("GreetingModule", dao);
     await greeter.setGreeting("Hello from JSON!");

@@ -130,13 +130,15 @@ describe("DAO Marketplace/Registry", function () {
         return "0x";
       }
     });
+    // User chooses public/private at creation time
+    const isPublic = true; // or false, as chosen by the user
     // Use template fields
     const tx = await factory.createDao(
       modules,
       initData,
       template.name,
       template.description,
-      template.isPublic,
+      isPublic,
       template.templateId || "full-modular"
     );
     const receipt = await tx.wait();
@@ -149,7 +151,7 @@ describe("DAO Marketplace/Registry", function () {
     const info = await factory.getDaoInfo(index);
     expect(info.name).to.equal(template.name);
     expect(info.description).to.equal(template.description);
-    expect(info.isPublic).to.equal(template.isPublic);
+    expect(info.isPublic).to.equal(isPublic);
     // Check MemberModule functionality
     const member = await ethers.getContractAt("MemberModule", dao);
     expect(await member.getRole(owner.address)).to.equal(2); // Admin

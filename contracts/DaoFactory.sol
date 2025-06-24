@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-// Import the interface for the DAO kernel (proxy logic contract)
-import "./interfaces/IDaoKernel.sol";
 // Import OpenZeppelin's Clones library for minimal proxy deployment
 import "@openzeppelin/contracts/proxy/Clones.sol";
 
@@ -24,9 +22,12 @@ contract DaoFactory {
         // Deploy a minimal proxy (clone) pointing to the kernel implementation
         address clone = Clones.clone(kernelImpl);
         
-        // Initialize the new DAO with the provided module
-        // The kernel expects an array, so wrap the module in a singleton array
-        IDaoKernel(payable(clone)).initModules(_asSingletonArray(module));
+        // Initialize the new DAO with the provided module using a low-level call
+        address[] memory modules = _asSingletonArray(module);
+        (bool success, ) = clone.call(
+            abi.encodeWithSignature("initModules(address[])", modules)
+        );
+        require(success, "Initialization failed");
         
         // Emit event for tracking
         emit DaoCreated(clone, module);

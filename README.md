@@ -1,6 +1,58 @@
 # Modular DAO Factory Demo
 
-This project demonstrates a modular, upgradeable DAO (Decentralized Autonomous Organization) factory on Ethereum. It allows users to deploy new DAOs with customizable modules using a factory contract, following modern proxy patterns for efficiency and flexibility.
+## System Overview: Modular DAO Factory
+
+This project is a Modular DAO Factory—a system that lets anyone create their own decentralized organization (DAO) on Ethereum, with customizable features. Think of it as a "DAO builder" where you can pick and choose what your DAO can do by plugging in different modules.
+
+### How does it work?
+
+- **Factory Contract:** The "factory" is a smart contract that creates new DAOs for users. Each DAO is a lightweight proxy contract (using the OpenZeppelin Clones pattern) that delegates its logic to a chosen module.
+- **DAO Kernel:** This is the core logic contract for each DAO. It handles initialization and delegates all function calls to the selected module.
+- **Modules:** These are plug-and-play contracts that define what a DAO can do. For example, a module could manage members, handle voting, or track a counter.
+- **Template Catalog:** A registry where available modules are listed, so users can easily select which module to use when creating a DAO.
+
+### Why is this powerful?
+
+- **Modularity:** You can add new features to DAOs by creating new modules, without changing the factory or kernel.
+- **Upgradeability:** Each DAO is a proxy, so its logic can be upgraded by changing the module it points to.
+- **Safety:** The system uses EIP-1967 storage slot conventions to prevent storage collisions, making it robust and compatible with Ethereum standards.
+
+## MemberModule Documentation
+
+The MemberModule is a smart contract module that gives a DAO the ability to manage its members and their roles. It's the main example module in this system, showing how DAOs can handle membership, admin rights, and join requests.
+
+### Key Features
+
+- **Role-based Access:** There are two main roles: Admin and Member. Admins have special permissions.
+- **Join Requests:** Anyone can request to join the DAO. Admins review and accept or reject these requests.
+- **Admin Actions:** Only admins can:
+  - Accept or reject join requests
+  - Add or remove members
+  - Change a member's role (promote/demote)
+- **Initializer:** The first admin is set via an `init(address)` function, which must be called after the DAO is created.
+
+### How does it work?
+
+1. **Initialization:**  After a DAO is created with the MemberModule, the `init(address)` function must be called (usually by the deployer) to set the first admin.
+2. **Requesting to Join:**  Any Ethereum address can call `requestToJoin()` to ask to become a member. Their request is added to a pending list.
+3. **Handling Requests:**  Admins can:
+   - Call `acceptRequest(address, Role)` to approve a request and assign a role (Admin or Member).
+   - Call `rejectRequest(address)` to deny a request.
+4. **Managing Members:**  Admins can remove members with `removeMember(address)`. Admins can change a member's role with `changeRole(address, Role)`.
+5. **Viewing Members and Requests:**  `getMembers()` returns all current members (including admins). `getJoinRequests()` returns all pending join requests.
+
+### Example Usage
+
+- **User wants to join:**  Calls `requestToJoin()`.
+- **Admin reviews requests:**  Calls `getJoinRequests()`, then `acceptRequest(user, Role.Member)` or `rejectRequest(user)`.
+- **Admin wants to promote a member:**  Calls `changeRole(member, Role.Admin)`.
+
+### Security Note
+
+- Only addresses with the Admin role can perform admin actions.
+- The first admin must be set after deployment using the `init` function.
+
+---
 
 ## Overview
 

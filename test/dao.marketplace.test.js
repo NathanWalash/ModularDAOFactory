@@ -2,6 +2,10 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const fs = require('fs');
 
+// Main integration and registry test for the Modular DAO Factory system.
+// Covers: DAO creation, registry, metadata, querying by template, member count, JSON template-driven creation, and multi-module integration.
+// Detailed module logic (e.g., MemberModule roles, join requests) is tested in module-specific test files.
+
 describe("DAO Marketplace/Registry", function () {
   let kernelImpl, memberImpl, factory, owner, addr1, addr2;
 

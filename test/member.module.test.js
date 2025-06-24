@@ -34,7 +34,8 @@ describe("MemberModule (roles & join requests)", function () {
       initData,
       "Test Member DAO",
       "A DAO for member module tests",
-      true
+      true,
+      "member"
     );
     const receipt = await tx.wait();
     const event = receipt.logs.find((e) => e.fragment && e.fragment.name === "DaoCreated");

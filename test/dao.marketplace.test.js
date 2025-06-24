@@ -35,7 +35,8 @@ describe("DAO Marketplace/Registry", function () {
       initData1,
       "Public DAO",
       "A public group",
-      true
+      true,
+      "default"
     );
     const receipt1 = await tx1.wait();
     const event1 = receipt1.logs.find((e) => e.fragment && e.fragment.name === "DaoCreated");
@@ -49,7 +50,8 @@ describe("DAO Marketplace/Registry", function () {
       initData2,
       "Private DAO",
       "A private group",
-      false
+      false,
+      "default"
     );
     const receipt2 = await tx2.wait();
     const event2 = receipt2.logs.find((e) => e.fragment && e.fragment.name === "DaoCreated");
@@ -76,13 +78,11 @@ describe("DAO Marketplace/Registry", function () {
     expect(publicDaos[0].name).to.equal("Public DAO");
   });
 
-  it("lists DAOs by creator", async () => {
-    const ownerDaos = await factory.getDaosByCreator(owner.address);
-    expect(ownerDaos.length).to.equal(1);
-    expect(ownerDaos[0].name).to.equal("Public DAO");
-    const addr1Daos = await factory.getDaosByCreator(addr1.address);
-    expect(addr1Daos.length).to.equal(1);
-    expect(addr1Daos[0].name).to.equal("Private DAO");
+  it("lists DAOs by template", async () => {
+    const daos = await factory.getDaosByTemplate("default");
+    expect(daos.length).to.equal(2);
+    expect(daos[0].name).to.equal("Public DAO");
+    expect(daos[1].name).to.equal("Private DAO");
   });
 
   it("can query member count for a DAO", async () => {
@@ -136,7 +136,8 @@ describe("DAO Marketplace/Registry", function () {
       initData,
       template.name,
       template.description,
-      template.isPublic
+      template.isPublic,
+      template.templateId || "full-modular"
     );
     const receipt = await tx.wait();
     const event = receipt.logs.find((e) => e.fragment && e.fragment.name === "DaoCreated");

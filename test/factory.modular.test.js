@@ -63,7 +63,8 @@ describe("Modular DAO Factory Demo", function () {
       initData,
       "Greeter DAO",
       "A DAO with a greeting module",
-      true
+      true,
+      "greeter"
     );
     const receipt = await tx.wait();
     const event = receipt.logs.find((e) => e.fragment && e.fragment.name === "DaoCreated");
@@ -83,7 +84,8 @@ describe("Modular DAO Factory Demo", function () {
       initData,
       "Counter DAO",
       "A DAO with a counter module",
-      true
+      true,
+      "counter"
     );
     const receipt = await tx.wait();
     const event = receipt.logs.find((e) => e.fragment && e.fragment.name === "DaoCreated");
@@ -107,7 +109,8 @@ describe("Modular DAO Factory Demo", function () {
       initData,
       "Multi-Module DAO",
       "A DAO with members and greetings",
-      true
+      true,
+      "multi"
     );
     const receipt = await tx.wait();
     const event = receipt.logs.find((e) => e.fragment && e.fragment.name === "DaoCreated");

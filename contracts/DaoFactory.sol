@@ -16,6 +16,7 @@ contract DaoFactory {
         address[] modules;
         address creator;
         uint256 createdAt;
+        string templateId;
     }
 
     // Address of the kernel implementation contract (the logic contract for proxies)
@@ -36,28 +37,40 @@ contract DaoFactory {
         bytes[] calldata initData,
         string calldata name,
         string calldata description,
-        bool isPublic
+        bool isPublic,
+        string calldata templateId
     ) external returns (address) {
         require(modules.length == initData.length, "Modules/initData length mismatch");
         address clone = Clones.clone(kernelImpl);
-        // Initialize the new DAO with the provided modules and init data
         (bool success, ) = clone.call(
             abi.encodeWithSignature("initModules(address[],bytes[])", modules, initData)
         );
         require(success, "Initialization failed");
-        // Store DAO metadata
-        daos.push(DaoInfo({
+        _storeDaoInfo(clone, modules, name, description, isPublic, templateId);
+        daoIndex[clone] = daos.length; // index+1
+        emit DaoCreated(clone, modules, name, isPublic);
+        return clone;
+    }
+
+    function _storeDaoInfo(
+        address clone,
+        address[] calldata modules,
+        string calldata name,
+        string calldata description,
+        bool isPublic,
+        string calldata templateId
+    ) internal {
+        DaoInfo memory info = DaoInfo({
             dao: clone,
             name: name,
             description: description,
             isPublic: isPublic,
             modules: modules,
             creator: msg.sender,
-            createdAt: block.timestamp
-        }));
-        daoIndex[clone] = daos.length; // index+1
-        emit DaoCreated(clone, modules, name, isPublic);
-        return clone;
+            createdAt: block.timestamp,
+            templateId: templateId
+        });
+        daos.push(info);
     }
 
     // Get the number of DAOs created
@@ -97,6 +110,21 @@ contract DaoFactory {
         uint idx = 0;
         for (uint i = 0; i < daos.length; i++) {
             if (daos[i].creator == creator) {
+                result[idx++] = daos[i];
+            }
+        }
+        return result;
+    }
+
+    function getDaosByTemplate(string calldata templateId) external view returns (DaoInfo[] memory) {
+        uint count = 0;
+        for (uint i = 0; i < daos.length; i++) {
+            if (keccak256(bytes(daos[i].templateId)) == keccak256(bytes(templateId))) count++;
+        }
+        DaoInfo[] memory result = new DaoInfo[](count);
+        uint idx = 0;
+        for (uint i = 0; i < daos.length; i++) {
+            if (keccak256(bytes(daos[i].templateId)) == keccak256(bytes(templateId))) {
                 result[idx++] = daos[i];
             }
         }

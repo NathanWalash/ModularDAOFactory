@@ -1,128 +1,123 @@
 # Modular DAO Factory Demo
 
-## System Overview: Modular DAO Factory
+## Overview
 
-This project is a Modular DAO Factory—a system that lets anyone create their own decentralized organization (DAO) on Ethereum, with customizable features. Think of it as a "DAO builder" where you can pick and choose what your DAO can do by plugging in different modules.
+This project is a **modular, extensible DAO factory system** built in Solidity, supporting the creation of DAOs with any combination of modules (e.g., membership, greeting, counter, voting, etc.). It uses a proxy-based, Diamond Standard-inspired architecture to allow each DAO to have its own set of modules, with safe, upgradeable storage.
 
-### How does it work?
-
-- **Factory Contract:** The "factory" is a smart contract that creates new DAOs for users. Each DAO is a lightweight proxy contract (using the OpenZeppelin Clones pattern) that delegates its logic to a chosen module.
-- **DAO Kernel:** This is the core logic contract for each DAO. It handles initialization and delegates all function calls to the selected module.
-- **Modules:** These are plug-and-play contracts that define what a DAO can do. For example, a module could manage members, handle voting, or track a counter.
-- **Template Catalog:** A registry where available modules are listed, so users can easily select which module to use when creating a DAO.
-
-### Why is this powerful?
-
-- **Modularity:** You can add new features to DAOs by creating new modules, without changing the factory or kernel.
-- **Upgradeability:** Each DAO is a proxy, so its logic can be upgraded by changing the module it points to.
-- **Safety:** The system uses EIP-1967 storage slot conventions to prevent storage collisions, making it robust and compatible with Ethereum standards.
-
-## MemberModule Documentation
-
-The MemberModule is a smart contract module that gives a DAO the ability to manage its members and their roles. It's the main example module in this system, showing how DAOs can handle membership, admin rights, and join requests.
-
-### Key Features
-
-- **Role-based Access:** There are two main roles: Admin and Member. Admins have special permissions.
-- **Join Requests:** Anyone can request to join the DAO. Admins review and accept or reject these requests.
-- **Admin Actions:** Only admins can:
-  - Accept or reject join requests
-  - Add or remove members
-  - Change a member's role (promote/demote)
-- **Initializer:** The first admin is set via an `init(address)` function, which must be called after the DAO is created.
-
-### How does it work?
-
-1. **Initialization:**  After a DAO is created with the MemberModule, the `init(address)` function must be called (usually by the deployer) to set the first admin.
-2. **Requesting to Join:**  Any Ethereum address can call `requestToJoin()` to ask to become a member. Their request is added to a pending list.
-3. **Handling Requests:**  Admins can:
-   - Call `acceptRequest(address, Role)` to approve a request and assign a role (Admin or Member).
-   - Call `rejectRequest(address)` to deny a request.
-4. **Managing Members:**  Admins can remove members with `removeMember(address)`. Admins can change a member's role with `changeRole(address, Role)`.
-5. **Viewing Members and Requests:**  `getMembers()` returns all current members (including admins). `getJoinRequests()` returns all pending join requests.
-
-### Example Usage
-
-- **User wants to join:**  Calls `requestToJoin()`.
-- **Admin reviews requests:**  Calls `getJoinRequests()`, then `acceptRequest(user, Role.Member)` or `rejectRequest(user)`.
-- **Admin wants to promote a member:**  Calls `changeRole(member, Role.Admin)`.
-
-### Security Note
-
-- Only addresses with the Admin role can perform admin actions.
-- The first admin must be set after deployment using the `init` function.
+- **DaoFactory**: Deploys new DAOs (as proxies), manages metadata, and tracks all DAOs.
+- **DaoKernel**: The core logic for each DAO instance. Delegates calls to modules based on function selector (Diamond pattern).
+- **Modules**: Pluggable contracts (e.g., MemberModule, GreetingModule, CounterModule) that provide DAO features. Each module is fully isolated in storage.
+- **JSON Templates**: Off-chain templates specify which modules and parameters to use for new DAOs.
 
 ---
 
-## Overview
+## Architecture & Standards
 
-- **DaoFactory**: Deploys new DAO instances (proxies) using OpenZeppelin's Clones, initializing them with a chosen module.
-- **DaoKernel**: The core logic for each DAO instance, handling initialization and delegating calls to its module.
-- **Modules**: Pluggable contracts that provide specific functionality to DAOs. The main example is now the `MemberModule` for role-based membership management.
-- **TemplateCatalog**: Registry for available modules, allowing easy lookup and selection when creating new DAOs.
+- **Diamond Pattern (EIP-2535 inspired)**: Each DAO proxy delegates calls to modules based on function selector. Modules must implement `getSelectors()` and `init(bytes)`.
+- **Diamond Storage**: Every module that stores state uses a unique storage slot (see CounterModule for example) to prevent storage collisions.
+- **Upgradeable/Extensible**: New modules can be added without changing the factory or kernel.
+- **Minimal Proxy (Clones)**: DAOs are deployed as minimal proxies for gas efficiency.
 
-## Architecture
+---
 
+## Creating a Multi-Module DAO
+
+1. **Deploy the modules you want to use** (e.g., MemberModule, GreetingModule, CounterModule).
+2. **Prepare ABI-encoded init data** for each module (e.g., admin address for MemberModule).
+3. **Call `DaoFactory.createDao`** with:
+   - `address[] modules`: The module implementation addresses
+   - `bytes[] initData`: ABI-encoded init data for each module
+   - `string name`, `string description`, `bool isPublic`: DAO metadata
+
+The factory deploys a new proxy, initializes all modules, and stores the DAO in its registry.
+
+---
+
+## JSON Template Format
+
+You can define DAOs off-chain using a JSON template. Example:
+
+```json
+{
+  "name": "Full Modular DAO",
+  "description": "A DAO with Member, Greeting, and Counter modules",
+  "isPublic": true,
+  "modules": [
+    "MemberModule",
+    "GreetingModule",
+    "CounterModule"
+  ],
+  "initParams": [
+    { "admin": "OWNER" },
+    {},
+    {}
+  ]
+}
 ```
-User → DaoFactory → (Clones) → DaoKernel (Proxy) → Module (Logic)
-```
-- Each DAO is a minimal proxy (clone) of the `DaoKernel` implementation.
-- The kernel delegates calls to a selected module, enabling modular and upgradable DAOs.
+- `modules`: List of module names (must be mapped to deployed addresses in your script/test)
+- `initParams`: List of objects/params for each module (e.g., admin address for MemberModule; empty for modules with no init)
+- `OWNER` is a placeholder to be replaced with the deployer address in your script/test
 
-## EIP-1967 Storage Slots
+**See `test/dao.marketplace.test.js` for a working example of using a template to deploy a DAO.**
 
-This project uses [EIP-1967](https://eips.ethereum.org/EIPS/eip-1967) storage slot conventions for storing important addresses (such as the factory and module addresses) in the proxy's storage. This approach:
-- Prevents storage collisions in upgradeable/proxy contracts.
-- Ensures compatibility with tools and standards in the Ethereum ecosystem.
-- Uses slots derived from `bytes32(uint256(keccak256('eip1967.proxy.<name>')) - 1)` for uniqueness and safety.
+---
 
-## Main Example: MemberModule
+## Adding New Modules
 
-The `MemberModule` is a robust example of a DAO module that supports:
-- **Role-based access control**: Admins and Members (with an enum for roles).
-- **Join requests**: Anyone can request to join; admins can accept or reject requests.
-- **Admin actions**: Only admins can add/remove members, accept/reject join requests, and change roles.
-- **Role management**: Admins can promote/demote members.
-- **Initializer**: The first admin is set via an `init(address)` function after proxy deployment.
+1. **Implement the module contract**:
+   - Must implement `getSelectors()` (returns all function selectors)
+   - Must implement `init(bytes)` (for per-DAO initialization; can be a no-op)
+   - If storing state, use a unique storage slot (diamond storage pattern)
+2. **Deploy the module**
+3. **Add it to your JSON template and deployment script**
 
-This module demonstrates how DAOs can manage their own membership and governance logic in a modular, upgradeable way.
+---
 
-## Other Example Modules (Legacy)
+## Testing & Development
 
-- `GreetingModule`: Allows setting and retrieving a greeting message.
-- `CounterModule`: Allows incrementing and retrieving a counter value.
+- **Run all tests:**
+  ```
+  npx hardhat test
+  ```
+- **Key tests:**
+  - Creating DAOs with different module sets
+  - Creating DAOs from JSON templates
+  - Verifying module functionality and storage isolation
 
-These modules are included for demonstration and testing purposes, but the main focus is now on the more advanced `MemberModule`.
+---
 
-## Quickstart
+## Best Practices & Standards Used
 
-### Prerequisites
-- Node.js (v16+ recommended)
-- npm
+- **Diamond Pattern (EIP-2535 inspired)** for modularity
+- **Diamond Storage** for safe, isolated state in modules
+- **Minimal Proxy (Clones)** for efficient deployment
+- **Off-chain templates** for flexible DAO creation
+- **Comprehensive tests** for all core features
 
-### Install Dependencies
-```bash
-npm install
-```
-
-### Compile Contracts
-```bash
-npx hardhat compile
-```
-
-### Run Tests
-```bash
-npx hardhat test
-```
+---
 
 ## Example Usage
-The test suite (`test/member.module.test.js`) demonstrates:
-- Deploying the kernel, factory, and MemberModule
-- Creating a DAO with the MemberModule
-- Initializing the DAO with an admin
-- Requesting to join, accepting/rejecting requests, and managing roles
 
-Legacy tests for `GreetingModule` and `CounterModule` are also included for reference.
+- **Create a DAO with Member, Greeting, and Counter modules from a template:**
+  - Deploy all modules
+  - Map template module names to addresses
+  - Encode init data (e.g., admin address)
+  - Call `factory.createDao(modules, initData, name, description, isPublic)`
+  - Interact with the DAO via any of its modules (e.g., add members, set greeting, increment counter)
 
-## License
-MIT 
+---
+
+## File Structure
+
+- `contracts/DaoFactory.sol` — Factory and registry
+- `contracts/DaoKernel.sol` — Core proxy logic (Diamond pattern)
+- `contracts/modules/MemberModule.sol` — Membership & roles (diamond storage)
+- `contracts/modules/GreetingModule.sol` — Greeting example (no state)
+- `contracts/modules/CounterModule.sol` — Counter example (diamond storage)
+- `test/dao_template.json` — Example JSON template
+- `test/dao.marketplace.test.js` — Full test suite, including template-driven DAO creation
+
+---
+
+## Questions?
+Open an issue or check the test suite for more usage examples and patterns. 

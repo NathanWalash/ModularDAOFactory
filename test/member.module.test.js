@@ -27,19 +27,19 @@ describe("MemberModule (roles & join requests)", function () {
     await factory.waitForDeployment();
 
     // Create a new DAO using MemberModule
+    const modules = [memberImpl.target];
+    const initData = [ethers.AbiCoder.defaultAbiCoder().encode(["address"], [owner.address])];
     const tx = await factory.createDao(
-      memberImpl.target,
+      modules,
+      initData,
       "Test Member DAO",
       "A DAO for member module tests",
       true
     );
     const receipt = await tx.wait();
-    const event = receipt.logs.find((e) => e.fragment.name === "DaoCreated");
+    const event = receipt.logs.find((e) => e.fragment && e.fragment.name === "DaoCreated");
+    if (!event) throw new Error("DaoCreated event not found");
     dao = event.args.dao;
-
-    // Initialize the MemberModule via the proxy (set owner as first admin)
-    const memberModule = await ethers.getContractAt("MemberModule", dao);
-    await memberModule.connect(owner).init(owner.address);
   });
 
   // Helper to get the MemberModule interface at the DAO address
@@ -49,7 +49,7 @@ describe("MemberModule (roles & join requests)", function () {
 
   it("initializes with deployer as admin", async () => {
     const memberModule = await getMemberModuleAtDAO();
-    expect(await memberModule.roles(owner.address)).to.equal(2); // Role.Admin
+    expect(await memberModule.getRole(owner.address)).to.equal(2); // Role.Admin
     const members = await memberModule.getMembers();
     expect(members).to.include(owner.address);
   });
@@ -67,10 +67,10 @@ describe("MemberModule (roles & join requests)", function () {
     const memberModule = await getMemberModuleAtDAO();
     // Accept addr1 as Member
     await memberModule.connect(owner).acceptRequest(addr1.address, 1); // Role.Member
-    expect(await memberModule.roles(addr1.address)).to.equal(1);
+    expect(await memberModule.getRole(addr1.address)).to.equal(1);
     // Accept addr2 as Admin
     await memberModule.connect(owner).acceptRequest(addr2.address, 2); // Role.Admin
-    expect(await memberModule.roles(addr2.address)).to.equal(2);
+    expect(await memberModule.getRole(addr2.address)).to.equal(2);
     // Requests should be cleared
     const requests = await memberModule.getJoinRequests();
     expect(requests).to.not.include(addr1.address);
@@ -91,7 +91,7 @@ describe("MemberModule (roles & join requests)", function () {
     await memberModule.connect(owner).rejectRequest(addr3.address);
     requests = await memberModule.getJoinRequests();
     expect(requests).to.not.include(addr3.address);
-    expect(await memberModule.roles(addr3.address)).to.equal(0); // Role.None
+    expect(await memberModule.getRole(addr3.address)).to.equal(0); // Role.None
   });
 
   it("only admins can accept/reject requests, remove members, or change roles", async () => {
@@ -115,10 +115,10 @@ describe("MemberModule (roles & join requests)", function () {
     const memberModule = await getMemberModuleAtDAO();
     // Owner demotes addr2 from Admin to Member
     await memberModule.connect(owner).changeRole(addr2.address, 1); // Role.Member
-    expect(await memberModule.roles(addr2.address)).to.equal(1);
+    expect(await memberModule.getRole(addr2.address)).to.equal(1);
     // Owner removes addr1
     await memberModule.connect(owner).removeMember(addr1.address);
-    expect(await memberModule.roles(addr1.address)).to.equal(0); // Role.None
+    expect(await memberModule.getRole(addr1.address)).to.equal(0); // Role.None
     const members = await memberModule.getMembers();
     expect(members).to.not.include(addr1.address);
   });

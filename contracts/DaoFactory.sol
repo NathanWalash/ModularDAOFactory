@@ -13,7 +13,7 @@ contract DaoFactory {
         string name;
         string description;
         bool isPublic;
-        address module;
+        address[] modules;
         address creator;
         uint256 createdAt;
     }
@@ -23,44 +23,40 @@ contract DaoFactory {
     DaoInfo[] public daos;
     mapping(address => uint256) public daoIndex; // dao address => index+1 in daos array
     // Emitted when a new DAO is created
-    event DaoCreated(address indexed dao, address indexed module, string name, bool isPublic);
+    event DaoCreated(address indexed dao, address[] modules, string name, bool isPublic);
 
     // Set the kernel implementation address at deployment
     constructor(address _kernelImpl) {
         kernelImpl = _kernelImpl;
     }
 
-    // Deploy a new DAO (proxy) and initialize it with the selected module and metadata
+    // Deploy a new DAO (proxy) and initialize it with the selected modules and metadata
     function createDao(
-        address module,
+        address[] calldata modules,
+        bytes[] calldata initData,
         string calldata name,
         string calldata description,
         bool isPublic
     ) external returns (address) {
-        // Deploy a minimal proxy (clone) pointing to the kernel implementation
+        require(modules.length == initData.length, "Modules/initData length mismatch");
         address clone = Clones.clone(kernelImpl);
-        
-        // Initialize the new DAO with the provided module using a low-level call
-        address[] memory modules = _asSingletonArray(module);
+        // Initialize the new DAO with the provided modules and init data
         (bool success, ) = clone.call(
-            abi.encodeWithSignature("initModules(address[])", modules)
+            abi.encodeWithSignature("initModules(address[],bytes[])", modules, initData)
         );
         require(success, "Initialization failed");
-        
         // Store DAO metadata
         daos.push(DaoInfo({
             dao: clone,
             name: name,
             description: description,
             isPublic: isPublic,
-            module: module,
+            modules: modules,
             creator: msg.sender,
             createdAt: block.timestamp
         }));
         daoIndex[clone] = daos.length; // index+1
-        
-        // Emit event for tracking
-        emit DaoCreated(clone, module, name, isPublic);
+        emit DaoCreated(clone, modules, name, isPublic);
         return clone;
     }
 
@@ -105,15 +101,5 @@ contract DaoFactory {
             }
         }
         return result;
-    }
-
-    // Helper to wrap a module address in a single-element array (required by kernel interface)
-    function _asSingletonArray(address module)
-        private
-        pure
-        returns (address[] memory arr)
-    {
-        arr = new address[](1);
-        arr[0] = module;
     }
 }

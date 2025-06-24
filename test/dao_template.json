@@ -1,0 +1,15 @@
+{
+  "name": "Full Modular DAO",
+  "description": "A DAO with Member, Greeting, and Counter modules",
+  "isPublic": true,
+  "modules": [
+    "MemberModule",
+    "GreetingModule",
+    "CounterModule"
+  ],
+  "initParams": [
+    { "admin": "OWNER" },
+    {},
+    {}
+  ]
+} 

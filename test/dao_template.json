@@ -1,0 +1,15 @@
+{
+  "templateName": "Community DAO",
+  "templateDescription": "A template for a community organization",
+  "modules": [
+    "MemberModule",
+    "GreetingModule",
+    "CounterModule"
+  ],
+  "initParamsSchema": [
+    { "admin": "address" },
+    {},
+    {}
+  ],
+  "templateId": "community-v1"
+} 

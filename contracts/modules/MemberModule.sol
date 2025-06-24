@@ -28,9 +28,25 @@ contract MemberModule {
         _;
     }
 
-    // Initializer: set the first admin (should be called via proxy after deployment)
-    function init(address firstAdmin) external {
+    // Standard Diamond interface: return function selectors
+    function getSelectors() external pure returns (bytes4[] memory selectors) {
+        selectors = new bytes4[](10);
+        selectors[0] = this.init.selector;
+        selectors[1] = this.requestToJoin.selector;
+        selectors[2] = this.acceptRequest.selector;
+        selectors[3] = this.rejectRequest.selector;
+        selectors[4] = this.removeMember.selector;
+        selectors[5] = this.changeRole.selector;
+        selectors[6] = this.getMembers.selector;
+        selectors[7] = this.getJoinRequests.selector;
+        selectors[8] = this.getMemberCount.selector;
+        selectors[9] = this.getRole.selector;
+    }
+
+    // Standard Diamond init (decode firstAdmin from bytes)
+    function init(bytes calldata data) external {
         require(!initialized, "Already initialized");
+        address firstAdmin = abi.decode(data, (address));
         roles[firstAdmin] = Role.Admin;
         memberList.push(firstAdmin);
         emit MemberAdded(firstAdmin, Role.Admin);
@@ -113,5 +129,10 @@ contract MemberModule {
     // Get the number of current members (including admins)
     function getMemberCount() external view returns (uint256) {
         return memberList.length;
+    }
+
+    // Custom getter for role (Diamond-compatible)
+    function getRole(address user) external view returns (Role) {
+        return roles[user];
     }
 } 

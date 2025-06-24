@@ -12,4 +12,14 @@ contract GreetingModule {
 
     // Retrieve the current greeting message
     function sayHello() external view returns (string memory) { return greeting; }
+
+    // Standard Diamond interface: return function selectors
+    function getSelectors() external pure returns (bytes4[] memory selectors) {
+        selectors = new bytes4[](2);
+        selectors[0] = this.setGreeting.selector;
+        selectors[1] = this.sayHello.selector;
+    }
+
+    // No-op Diamond-compatible init
+    function init(bytes calldata) external {}
 }

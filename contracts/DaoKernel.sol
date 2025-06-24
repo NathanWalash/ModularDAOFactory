@@ -51,15 +51,15 @@ contract DaoKernel {
     receive() external payable {}
 
     // Initialize the DAO with modules and their init data
-    function initModules(address[] calldata modules, bytes[] calldata initData) external {
+    function initModules(address[] calldata moduleAddrs, bytes[] calldata initData) external {
         require(getFactory() == address(0), "Kernel: already initialized");
-        require(modules.length > 0, "No modules provided");
-        require(modules.length == initData.length, "Modules/initData length mismatch");
+        require(moduleAddrs.length > 0, "No modules provided");
+        require(moduleAddrs.length == initData.length, "Modules/initData length mismatch");
         _setFactory(msg.sender);
         ModuleRegistry storage reg = _moduleRegistryStorage();
         SelectorToModule storage sel = _selectorToModuleStorage();
-        for (uint i = 0; i < modules.length; i++) {
-            address module = modules[i];
+        for (uint i = 0; i < moduleAddrs.length; i++) {
+            address module = moduleAddrs[i];
             reg.modules.push(module);
             // Query the module for its function selectors
             (bool ok, bytes memory selectorsData) = module.staticcall(abi.encodeWithSignature("getSelectors()"));
@@ -89,5 +89,11 @@ contract DaoKernel {
                 case 0 { revert(0, returndatasize()) }
                 default { return(0, returndatasize()) }
         }
+    }
+
+    // Expose the list of modules (for diamond modules to find each other)
+    function modules() public view returns (address[] memory) {
+        ModuleRegistry storage reg = _moduleRegistryStorage();
+        return reg.modules;
     }
 }

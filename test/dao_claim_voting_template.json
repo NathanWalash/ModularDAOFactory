@@ -1,0 +1,13 @@
+{
+  "templateName": "Claims DAO",
+  "templateDescription": "A DAO with membership and claim voting",
+  "modules": [
+    "MemberModule",
+    "ClaimVotingModule"
+  ],
+  "initParamsSchema": [
+    { "admin": "address" },
+    { "quorum": "uint256" }
+  ],
+  "templateId": "claims-voting-v1"
+} 
